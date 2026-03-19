@@ -1,4 +1,4 @@
-name: Hybrid CI/CD Pipeline
+name: Customer Portal Hybrid CI/CD Pipeline
  
 on:
   push:
@@ -7,47 +7,84 @@ on:
  
 jobs:
  
-  build-and-validate:
- 
-    name: Build and Validate Application
+  # -------------------------------
+  # 1. BUILD STAGE (GitHub Hosted)
+  # -------------------------------
+  build:
+    name: Build Application
     runs-on: ubuntu-latest
  
     steps:
- 
-      - name: Checkout Source Code
+      - name: Checkout Code
         uses: actions/checkout@v4
  
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.1'
+      - name: Validate PHP Syntax
+        run: |
+          find src -name "*.php" -exec php -l {} \;
  
-      - name: Execute PHP Application
-        run: php src/index.php
+      - name: Build Completed
+        run: echo "Build successful"
  
- 
-  database-deployment:
- 
+  # -----------------------------------
+  # 2. DATABASE DEPLOY (Self Hosted)
+  # -----------------------------------
+  deploy-db:
     name: Deploy Database Changes
     runs-on: self-hosted
-    needs: build-and-validate
+    needs: build
  
     steps:
- 
-      - name: Checkout Source Code
+      - name: Checkout Code
         uses: actions/checkout@v4
  
-      - name: Execute Database Script
-        run: echo "Running SQL script from database/script.sql"
+      - name: Run SQL Script (Insert Data)
+        run: |
+          /opt/mssql-tools/bin/sqlcmd \
+          -S ${{ secrets.DB_SERVER }} \
+          -d ${{ secrets.DB_NAME }} \
+          -U ${{ secrets.DB_USER }} \
+          -P ${{ secrets.DB_PASSWORD }} \
+          -i database/insert_data.sql
  
- 
-  application-deployment:
- 
-    name: Deploy Application
+  # -----------------------------------
+  # 3. VERIFY DATA
+  # -----------------------------------
+  verify-db:
+    name: Verify Database Changes
     runs-on: self-hosted
-    needs: database-deployment
+    needs: deploy-db
  
     steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
  
-      - name: Deploy Application
-        run: echo "Deploying application..."
+      - name: Verify Inserted Data
+        run: |
+          /opt/mssql-tools/bin/sqlcmd \
+          -S ${{ secrets.DB_SERVER }} \
+          -d ${{ secrets.DB_NAME }} \
+          -U ${{ secrets.DB_USER }} \
+          -P ${{ secrets.DB_PASSWORD }} \
+          -Q "SELECT * FROM [dbo].[DevOps_1]"
+ 
+  # -----------------------------------
+  # 4. ROLLBACK (ONLY IF FAILURE)
+  # -----------------------------------
+  rollback:
+    name: Rollback on Failure
+    runs-on: self-hosted
+    needs: deploy-db
+    if: failure()
+ 
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+ 
+      - name: Run Rollback Script
+        run: |
+          /opt/mssql-tools/bin/sqlcmd \
+          -S ${{ secrets.DB_SERVER }} \
+          -d ${{ secrets.DB_NAME }} \
+          -U ${{ secrets.DB_USER }} \
+          -P ${{ secrets.DB_PASSWORD }} \
+          -i database/rollback.sql
