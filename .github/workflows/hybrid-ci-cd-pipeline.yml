@@ -27,7 +27,7 @@ jobs:
  
  
   # -----------------------------------
-  # 2. DATABASE DEPLOY (Self-Hosted - Windows)
+  # 2. DATABASE DEPLOY (Self-Hosted Windows)
   # -----------------------------------
   deploy-db:
     name: Deploy Database Changes
@@ -38,18 +38,23 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
  
-      - name: Run SQL Script (Insert Data)
+      - name: Run SQL Script with Debug
         shell: cmd
         run: |
-          echo Starting SQL Execution...
+          echo ===== START SQL EXECUTION =====
  
           sqlcmd -S %DB_SERVER% ^
                  -d %DB_NAME% ^
                  -U %DB_USER% ^
                  -P %DB_PASSWORD% ^
-                 -i database\insert_data.sql
+                 -i database\insert_data.sql ^
+                 -o output.txt
  
-          echo SQL Execution Completed
+          echo ===== SQL OUTPUT =====
+          type output.txt
+ 
+          echo ===== END SQL EXECUTION =====
+ 
         env:
           DB_SERVER: ${{ secrets.DB_SERVER }}
           DB_NAME: ${{ secrets.DB_NAME }}
@@ -66,16 +71,16 @@ jobs:
     needs: deploy-db
  
     steps:
-      - name: Verify Inserted Data
+      - name: Verify Row Count
         shell: cmd
         run: |
-          echo Verifying Data...
+          echo ===== VERIFY DATA =====
  
           sqlcmd -S %DB_SERVER% ^
                  -d %DB_NAME% ^
                  -U %DB_USER% ^
                  -P %DB_PASSWORD% ^
-                 -Q "SELECT * FROM [dbo].[DevOps_1]"
+                 -Q "SELECT COUNT(*) AS TotalRows FROM [dbo].[DevOps_1]"
  
         env:
           DB_SERVER: ${{ secrets.DB_SERVER }}
@@ -97,13 +102,15 @@ jobs:
       - name: Run Rollback Script
         shell: cmd
         run: |
-          echo Running Rollback...
+          echo ===== ROLLBACK STARTED =====
  
           sqlcmd -S %DB_SERVER% ^
                  -d %DB_NAME% ^
                  -U %DB_USER% ^
                  -P %DB_PASSWORD% ^
                  -i database\rollback.sql
+ 
+          echo ===== ROLLBACK COMPLETED =====
  
         env:
           DB_SERVER: ${{ secrets.DB_SERVER }}
