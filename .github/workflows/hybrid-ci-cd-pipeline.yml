@@ -1,0 +1,53 @@
+name: Hybrid CI/CD Pipeline
+ 
+on:
+  push:
+    branches:
+      - main
+ 
+jobs:
+ 
+  build-and-validate:
+ 
+    name: Build and Validate Application
+    runs-on: ubuntu-latest
+ 
+    steps:
+ 
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+ 
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+ 
+      - name: Execute PHP Application
+        run: php src/index.php
+ 
+ 
+  database-deployment:
+ 
+    name: Deploy Database Changes
+    runs-on: self-hosted
+    needs: build-and-validate
+ 
+    steps:
+ 
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+ 
+      - name: Execute Database Script
+        run: echo "Running SQL script from database/script.sql"
+ 
+ 
+  application-deployment:
+ 
+    name: Deploy Application
+    runs-on: self-hosted
+    needs: database-deployment
+ 
+    steps:
+ 
+      - name: Deploy Application
+        run: echo "Deploying application..."
