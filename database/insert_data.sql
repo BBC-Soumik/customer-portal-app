@@ -1,6 +1,6 @@
 INSERT INTO [dbo].[DevOps_1] (Test)
 VALUES
-('HelloShiva'),
-('HelloArun'),
-('HelloJaya'),
-('HelloPipeline');
+('HelloShiva1'),
+('HelloArun2'),
+('HelloJaya3'),
+('HelloPipeline1');
