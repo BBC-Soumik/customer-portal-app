@@ -32,7 +32,7 @@ jobs:
   # -----------------------------------
   deploy-db:
     name: Deploy Database Changes
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     needs: build
  
     steps:
@@ -68,7 +68,7 @@ jobs:
   # -----------------------------------
   verify-db:
     name: Verify Database Changes
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     needs: deploy-db
  
     steps:
@@ -95,7 +95,7 @@ jobs:
   # -----------------------------------
   rollback:
     name: Rollback on Failure
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     needs: deploy-db
     if: failure()
  
